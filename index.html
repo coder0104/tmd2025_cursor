@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MEDAI - 치매 가능성 진단</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <header class="header">
+            <h1 class="logo">MEDAI</h1>
+            <p class="subtitle">치매 가능성 진단 시스템</p>
+        </header>
+
+        <!-- 메인 콘텐츠 -->
+        <main class="main-content">
+            <!-- 캔버스 영역 -->
+            <div class="canvas-container">
+                <canvas id="drawingCanvas" width="600" height="400"></canvas>
+                <div class="canvas-overlay">
+                    <p>여기에 펜으로 글을 써보세요</p>
+                </div>
+            </div>
+
+            <!-- 버튼 영역 -->
+            <div class="button-container">
+                <button id="analyzeBtn" class="analyze-btn">분석 시작</button>
+                <button id="resetBtn" class="reset-btn">다시 그리기</button>
+            </div>
+
+            <!-- 진행바 -->
+            <div id="progressContainer" class="progress-container hidden">
+                <div class="progress-bar">
+                    <div id="progressBar" class="progress-fill"></div>
+                </div>
+                <p id="progressText" class="progress-text">분석 중...</p>
+            </div>
+
+            <!-- 결과 영역 -->
+            <div id="resultContainer" class="result-container hidden">
+                <div class="result-card">
+                    <h2>진단 결과</h2>
+                    <div class="result-content">
+                        <div class="result-percentage">
+                            <span id="resultPercentage">0</span>%
+                        </div>
+                        <p id="resultText" class="result-text">치매 가능성</p>
+                        <div class="result-description">
+                            <p id="resultDescription">분석 결과가 여기에 표시됩니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
