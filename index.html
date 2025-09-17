@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEDAI - 치매 가능성 진단</title>
+    <title>MEDAI - 경도인지장애(MCI) 가능성 진단</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +11,7 @@
         <!-- 헤더 -->
         <header class="header">
             <h1 class="logo">MEDAI</h1>
-            <p class="subtitle">치매 가능성 진단 시스템</p>
+            <p class="subtitle">경도인지장애(MCI) 가능성 진단 시스템</p>
         </header>
 
         <!-- 메인 콘텐츠 -->
@@ -46,9 +46,25 @@
                         <div class="result-percentage">
                             <span id="resultPercentage">0</span>%
                         </div>
-                        <p id="resultText" class="result-text">치매 가능성</p>
+                        <p id="resultText" class="result-text">경도인지장애(MCI) 가능성</p>
                         <div class="result-description">
                             <p id="resultDescription">분석 결과가 여기에 표시됩니다.</p>
+                        </div>
+                        <!-- 도움 리소스 -->
+                        <div class="resources" id="resourcesSection">
+                            <h3>도움이 필요하신가요?</h3>
+                            <ul id="resourcesList"></ul>
+                            <p class="resources-note">번호를 눌러 전화하거나 링크로 이동할 수 있습니다.</p>
+                        </div>
+
+                        <!-- 추이 그래프 -->
+                        <div class="trend" id="trendSection">
+                            <h3>나의 추이</h3>
+                            <canvas id="trendChart" width="600" height="260"></canvas>
+                            <div class="trend-controls">
+                                <button id="exportHistoryBtn" class="reset-btn">JSON 내보내기</button>
+                                <button id="clearHistoryBtn" class="reset-btn">데이터 초기화</button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -56,6 +72,7 @@
         </main>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

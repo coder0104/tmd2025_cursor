@@ -10,10 +10,17 @@ const resultContainer = document.getElementById('resultContainer');
 const resultPercentage = document.getElementById('resultPercentage');
 const resultText = document.getElementById('resultText');
 const resultDescription = document.getElementById('resultDescription');
+const resourcesSection = document.getElementById('resourcesSection');
+const resourcesList = document.getElementById('resourcesList');
+const trendSection = document.getElementById('trendSection');
+const trendCanvas = document.getElementById('trendChart');
+const exportHistoryBtn = document.getElementById('exportHistoryBtn');
+const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 
 // 캔버스 그리기 상태
 let isDrawing = false;
 let clickCount = 0;
+let trendChartInstance = null;
 
 // 캔버스 초기 설정
 ctx.strokeStyle = '#333';
@@ -139,7 +146,7 @@ function showResult(percentage, level) {
         resultPercentage.textContent = Math.round(value);
     });
     
-    resultText.textContent = '치매 가능성';
+    resultText.textContent = '경도인지장애(MCI) 가능성';
     
     // 결과에 따른 설명 텍스트
     let description = '';
@@ -150,6 +157,17 @@ function showResult(percentage, level) {
     }
     
     resultDescription.textContent = description;
+    
+    // 리소스 표시
+    renderResources(level);
+    
+    // 이력 저장 및 차트 업데이트
+    saveHistory({
+        timestamp: new Date().toISOString(),
+        percentage,
+        level
+    });
+    renderTrendChart();
     
     // 버튼 텍스트 변경
     analyzeBtn.textContent = '다시 분석';
@@ -197,3 +215,223 @@ function resizeCanvas() {
 // 윈도우 리사이즈 이벤트
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
+
+// 도움 리소스 데이터
+const SUPPORT_RESOURCES = [
+    {
+        label: '보건복지부 보건복지상담센터',
+        phone: '129',
+        url: 'https://www.mohw.go.kr',
+        note: '24시간 상담 (국번없이 129)'
+    },
+    {
+        label: '치매상담콜센터',
+        phone: '1899-9988',
+        url: 'https://www.nid.or.kr',
+        note: '국가치매관리사업 안내'
+    },
+    {
+        label: '중앙치매센터',
+        phone: '02-719-7575',
+        url: 'https://www.nid.or.kr/info/dementia_info_list.aspx',
+        note: '치매 정보/지원 서비스'
+    },
+    {
+        label: '치매안심센터 안내',
+        phone: null,
+        url: 'https://www.nid.or.kr/info/dementia_safe_center_list.aspx',
+        note: '지역별 치매안심센터 찾기'
+    },
+    {
+        label: '정신건강위기 상담전화',
+        phone: '1577-0199',
+        url: 'https://www.mentalhealth.go.kr',
+        note: '자살예방·정신건강 위기 지원'
+    }
+];
+
+function renderResources(level) {
+    if (!resourcesSection || !resourcesList) return;
+    resourcesList.innerHTML = '';
+    
+    SUPPORT_RESOURCES.forEach((item) => {
+        const li = document.createElement('li');
+        const left = document.createElement('div');
+        const right = document.createElement('div');
+        left.className = 'label';
+        right.className = 'meta';
+
+        left.textContent = item.label;
+
+        const parts = [];
+        if (item.phone) {
+            const phoneLink = document.createElement('a');
+            phoneLink.href = `tel:${item.phone.replace(/[^0-9]/g, '')}`;
+            phoneLink.textContent = item.phone;
+            parts.push(phoneLink);
+        }
+        if (item.url) {
+            const urlLink = document.createElement('a');
+            urlLink.href = item.url;
+            urlLink.target = '_blank';
+            urlLink.rel = 'noopener noreferrer';
+            urlLink.textContent = '웹사이트';
+            parts.push(urlLink);
+        }
+
+        const note = document.createElement('span');
+        note.textContent = item.note ? ` · ${item.note}` : '';
+
+        parts.forEach((el, idx) => {
+            if (idx > 0) {
+                const sep = document.createElement('span');
+                sep.textContent = ' | ';
+                right.appendChild(sep);
+            }
+            right.appendChild(el);
+        });
+        right.appendChild(note);
+
+        li.appendChild(left);
+        li.appendChild(right);
+        resourcesList.appendChild(li);
+    });
+
+    resourcesSection.style.display = 'block';
+}
+
+// ----- 추이: 로컬스토리지 이력 관리 -----
+const HISTORY_KEY = 'mci_history_v1';
+
+// 초기 이력 시드 (비어있을 때만 1회 주입)
+function daysAgoISO(days) {
+    const d = new Date();
+    d.setHours(12, 0, 0, 0);
+    d.setDate(d.getDate() - days);
+    return d.toISOString();
+}
+
+function seedHistoryIfEmpty() {
+    const existing = loadHistory();
+    if (existing.length > 0) return;
+    const seed = [
+        { timestamp: daysAgoISO(28), percentage: 56, level: '낮음' },
+        { timestamp: daysAgoISO(21), percentage: 63,  level: '낮음' },
+        { timestamp: daysAgoISO(14), percentage: 43, level: '낮음' },
+        { timestamp: daysAgoISO(7),  percentage: 57, level: '높음' },
+        { timestamp: daysAgoISO(3),  percentage: 44, level: '높음' }
+    ];
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(seed));
+}
+
+function loadHistory() {
+    try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveHistory(entry) {
+    const history = loadHistory();
+    history.push(entry);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function clearHistory() {
+    localStorage.removeItem(HISTORY_KEY);
+}
+
+function formatDateLabel(isoString) {
+    const d = new Date(isoString);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mi = String(d.getMinutes()).padStart(2, '0');
+    return `${mm}/${dd} ${hh}:${mi}`;
+}
+
+function renderTrendChart() {
+    if (!trendCanvas || !window.Chart) return;
+    const history = loadHistory();
+    const labels = history.map(h => formatDateLabel(h.timestamp));
+    const data = history.map(h => h.percentage);
+    
+    if (trendChartInstance) {
+        trendChartInstance.data.labels = labels;
+        trendChartInstance.data.datasets[0].data = data;
+        trendChartInstance.update();
+        return;
+    }
+    
+    trendChartInstance = new Chart(trendCanvas, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'MCI 가능성(%)',
+                data,
+                borderColor: '#667eea',
+                backgroundColor: 'rgba(102,126,234,0.15)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+                pointBackgroundColor: '#667eea'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: { beginAtZero: true, max: 100, ticks: { stepSize: 10 } }
+            }
+        }
+    });
+}
+
+// 초기 렌더
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        seedHistoryIfEmpty();
+        renderTrendChart();
+    });
+} else {
+    seedHistoryIfEmpty();
+    renderTrendChart();
+}
+
+// 컨트롤 버튼 이벤트
+if (exportHistoryBtn) {
+    exportHistoryBtn.addEventListener('click', () => {
+        const history = loadHistory();
+        const blob = new Blob([JSON.stringify(history, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        a.href = url;
+        a.download = `mci_history_${y}${m}${d}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+if (clearHistoryBtn) {
+    clearHistoryBtn.addEventListener('click', () => {
+        if (!confirm('저장된 이력을 모두 삭제할까요?')) return;
+        clearHistory();
+        if (trendChartInstance) {
+            trendChartInstance.data.labels = [];
+            trendChartInstance.data.datasets[0].data = [];
+            trendChartInstance.update();
+        }
+    });
+}

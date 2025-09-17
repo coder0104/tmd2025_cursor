@@ -216,6 +216,98 @@ body {
     line-height: 1.6;
 }
 
+/* 도움 리소스 */
+.resources {
+    margin-top: 20px;
+    width: 100%;
+    max-width: 520px;
+}
+
+.resources h3 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.resources ul {
+    list-style: none;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.resources li {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.resources a {
+    color: #4f46e5;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.resources a:hover {
+    text-decoration: underline;
+}
+
+.resources .label {
+    color: #374151;
+    font-weight: 600;
+}
+
+.resources .meta {
+    color: #6b7280;
+    font-size: 0.9rem;
+}
+
+.resources-note {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+/* 추이 그래프 */
+.trend {
+    margin-top: 24px;
+    width: 100%;
+    max-width: 640px;
+    height: 400px;
+}
+
+.trend h3 {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+#trendChart {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 8px;
+    height: 160px; /* 고정 높이로 더 짧게 */
+}
+
+.trend-controls {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 768px) {
+    #trendChart {
+        height: 140px; /* 모바일에서 더 컴팩트하게 */
+    }
+}
+
 /* 유틸리티 클래스 */
 .hidden {
     display: none !important;
