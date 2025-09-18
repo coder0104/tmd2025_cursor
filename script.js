@@ -20,6 +20,16 @@ const clearHistoryBtn = document.getElementById('clearHistoryBtn');
 // 캔버스 그리기 상태
 let isDrawing = false;
 let clickCount = 0;
+
+// 손글씨 분석 데이터
+let strokeData = {
+    points: [],
+    timestamps: [],
+    pressures: [],
+    speeds: [],
+    accelerations: [],
+    jerks: []
+};
 let trendChartInstance = null;
 
 // 캔버스 초기 설정
@@ -44,6 +54,23 @@ function startDrawing(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // 새로운 스트로크 시작 - 데이터 초기화
+    strokeData = {
+        points: [],
+        timestamps: [],
+        pressures: [],
+        speeds: [],
+        accelerations: [],
+        jerks: []
+    };
+    
+    // 첫 번째 포인트 추가
+    const timestamp = Date.now();
+    strokeData.points.push({x, y});
+    strokeData.timestamps.push(timestamp);
+    strokeData.pressures.push(1.0); // 기본 압력값
+    
     ctx.beginPath();
     ctx.moveTo(x, y);
 }
@@ -54,6 +81,39 @@ function draw(e) {
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    
+    // 포인트 데이터 수집
+    const timestamp = Date.now();
+    const prevPoint = strokeData.points[strokeData.points.length - 1];
+    
+    if (prevPoint) {
+        // 거리 계산
+        const distance = Math.sqrt((x - prevPoint.x) ** 2 + (y - prevPoint.y) ** 2);
+        const timeDiff = timestamp - strokeData.timestamps[strokeData.timestamps.length - 1];
+        
+        // 속도 계산
+        const speed = timeDiff > 0 ? distance / timeDiff : 0;
+        strokeData.speeds.push(speed);
+        
+        // 가속도 계산
+        if (strokeData.speeds.length > 1) {
+            const prevSpeed = strokeData.speeds[strokeData.speeds.length - 2];
+            const acceleration = timeDiff > 0 ? (speed - prevSpeed) / timeDiff : 0;
+            strokeData.accelerations.push(acceleration);
+        }
+        
+        // 저크 계산 (가속도의 변화율)
+        if (strokeData.accelerations.length > 1) {
+            const prevAcceleration = strokeData.accelerations[strokeData.accelerations.length - 2];
+            const jerk = timeDiff > 0 ? (strokeData.accelerations[strokeData.accelerations.length - 1] - prevAcceleration) / timeDiff : 0;
+            strokeData.jerks.push(jerk);
+        }
+    }
+    
+    // 포인트 추가
+    strokeData.points.push({x, y});
+    strokeData.timestamps.push(timestamp);
+    strokeData.pressures.push(1.0); // 기본 압력값
     
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -82,14 +142,16 @@ analyzeBtn.addEventListener('click', function() {
     if (clickCount === 1) {
         // 첫 번째 클릭: 10% 언저리 결과
         showProgress(5000, () => {
-            const percentage = getRandomPercentage(5, 15); // 5-15% 범위
-            showResult(percentage, '낮음');
+            const basePercentage = getRandomPercentage(5, 15); // 5-15% 범위
+            const adjustedPercentage = adjustPercentageByHandwriting(basePercentage, '낮음');
+            showResult(adjustedPercentage, '낮음');
         });
     } else if (clickCount === 2) {
         // 두 번째 클릭: 40% 언저리 결과
         showProgress(5000, () => {
-            const percentage = getRandomPercentage(35, 45); // 35-45% 범위
-            showResult(percentage, '높음');
+            const basePercentage = getRandomPercentage(35, 45); // 35-45% 범위
+            const adjustedPercentage = adjustPercentageByHandwriting(basePercentage, '높음');
+            showResult(adjustedPercentage, '높음');
         });
     }
 });
@@ -101,6 +163,14 @@ resetBtn.addEventListener('click', function() {
     
     // 상태 초기화
     clickCount = 0;
+    strokeData = {
+        points: [],
+        timestamps: [],
+        pressures: [],
+        speeds: [],
+        accelerations: [],
+        jerks: []
+    };
     
     // UI 초기화
     progressContainer.classList.add('hidden');
@@ -135,6 +205,121 @@ function showProgress(duration, callback) {
 // 랜덤 퍼센트 생성 함수
 function getRandomPercentage(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// 손글씨 분석을 통한 확률 조정 함수
+function adjustPercentageByHandwriting(basePercentage, level) {
+    if (strokeData.points.length < 3) {
+        return basePercentage; // 데이터가 부족하면 기본값 반환
+    }
+    
+    const analysis = analyzeHandwriting();
+    let adjustment = 0;
+    
+    // 속도 일관성 분석
+    if (analysis.speedConsistency < 0.3) {
+        adjustment += 15; // 속도가 불규칙하면 위험도 증가
+    } else if (analysis.speedConsistency > 0.7) {
+        adjustment -= 5; // 속도가 일정하면 위험도 감소
+    }
+    
+    // 선의 직선성 분석
+    if (analysis.straightness < 0.4) {
+        adjustment += 20; // 선이 삐뚤하면 위험도 증가
+    } else if (analysis.straightness > 0.8) {
+        adjustment -= 8; // 선이 곧으면 위험도 감소
+    }
+    
+    // 가속도 변동성 분석
+    if (analysis.accelerationVariability > 0.6) {
+        adjustment += 12; // 가속도가 불규칙하면 위험도 증가
+    } else if (analysis.accelerationVariability < 0.2) {
+        adjustment -= 3; // 가속도가 일정하면 위험도 감소
+    }
+    
+    // 저크 분석 (손떨림)
+    if (analysis.jerkLevel > 0.5) {
+        adjustment += 18; // 저크가 높으면 위험도 증가
+    } else if (analysis.jerkLevel < 0.1) {
+        adjustment -= 5; // 저크가 낮으면 위험도 감소
+    }
+    
+    // 전체적인 안정성
+    if (analysis.overallStability < 0.3) {
+        adjustment += 25; // 전반적으로 불안정하면 위험도 증가
+    } else if (analysis.overallStability > 0.8) {
+        adjustment -= 10; // 전반적으로 안정하면 위험도 감소
+    }
+    
+    const adjustedPercentage = Math.max(0, Math.min(100, basePercentage + adjustment));
+    return Math.round(adjustedPercentage);
+}
+
+// 손글씨 분석 함수
+function analyzeHandwriting() {
+    const analysis = {
+        speedConsistency: 0,
+        straightness: 0,
+        accelerationVariability: 0,
+        jerkLevel: 0,
+        overallStability: 0
+    };
+    
+    if (strokeData.speeds.length < 2) {
+        return analysis;
+    }
+    
+    // 속도 일관성 계산
+    const meanSpeed = strokeData.speeds.reduce((a, b) => a + b, 0) / strokeData.speeds.length;
+    const speedVariance = strokeData.speeds.reduce((sum, speed) => sum + Math.pow(speed - meanSpeed, 2), 0) / strokeData.speeds.length;
+    const speedStdDev = Math.sqrt(speedVariance);
+    analysis.speedConsistency = Math.max(0, 1 - (speedStdDev / (meanSpeed + 0.001))); // 0-1 범위로 정규화
+    
+    // 선의 직선성 계산 (첫 점과 마지막 점을 잇는 직선과의 편차)
+    if (strokeData.points.length > 2) {
+        const firstPoint = strokeData.points[0];
+        const lastPoint = strokeData.points[strokeData.points.length - 1];
+        const totalDistance = Math.sqrt(Math.pow(lastPoint.x - firstPoint.x, 2) + Math.pow(lastPoint.y - firstPoint.y, 2));
+        
+        if (totalDistance > 0) {
+            let totalDeviation = 0;
+            for (let i = 1; i < strokeData.points.length - 1; i++) {
+                const point = strokeData.points[i];
+                const t = i / (strokeData.points.length - 1);
+                const expectedX = firstPoint.x + t * (lastPoint.x - firstPoint.x);
+                const expectedY = firstPoint.y + t * (lastPoint.y - firstPoint.y);
+                const deviation = Math.sqrt(Math.pow(point.x - expectedX, 2) + Math.pow(point.y - expectedY, 2));
+                totalDeviation += deviation;
+            }
+            const avgDeviation = totalDeviation / (strokeData.points.length - 2);
+            analysis.straightness = Math.max(0, 1 - (avgDeviation / (totalDistance + 0.001))); // 0-1 범위로 정규화
+        }
+    }
+    
+    // 가속도 변동성 계산
+    if (strokeData.accelerations.length > 1) {
+        const meanAcceleration = strokeData.accelerations.reduce((a, b) => a + b, 0) / strokeData.accelerations.length;
+        const accelVariance = strokeData.accelerations.reduce((sum, accel) => sum + Math.pow(accel - meanAcceleration, 2), 0) / strokeData.accelerations.length;
+        const accelStdDev = Math.sqrt(accelVariance);
+        analysis.accelerationVariability = Math.min(1, accelStdDev / (Math.abs(meanAcceleration) + 0.001)); // 0-1 범위로 정규화
+    }
+    
+    // 저크 레벨 계산
+    if (strokeData.jerks.length > 0) {
+        const meanJerk = strokeData.jerks.reduce((a, b) => a + b, 0) / strokeData.jerks.length;
+        const jerkMagnitude = Math.abs(meanJerk);
+        analysis.jerkLevel = Math.min(1, jerkMagnitude / 0.01); // 0-1 범위로 정규화
+    }
+    
+    // 전체적인 안정성 계산 (모든 지표의 가중 평균)
+    analysis.overallStability = (
+        analysis.speedConsistency * 0.3 +
+        analysis.straightness * 0.3 +
+        (1 - analysis.accelerationVariability) * 0.2 +
+        (1 - analysis.jerkLevel) * 0.2
+    );
+    
+    return analysis;
 }
 
 // 결과 표시 함수
