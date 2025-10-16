@@ -162,6 +162,89 @@ body {
     font-weight: 500;
 }
 
+/* KDSQ 설문 개선 스타일 */
+.kdsq-section {
+    margin-bottom: 30px;
+}
+
+.kdsq-desc {
+    margin-bottom: 16px;
+    color: #4b5563;
+    line-height: 1.6;
+}
+
+.kdsq-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.kdsq-list > li {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 18px 16px;
+    margin-bottom: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.kdsq-list > li span {
+    display: block;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 12px;
+}
+
+.kdsq-options {
+    display: flex;
+    gap: 12px;
+}
+
+.kdsq-options label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.05s ease;
+}
+
+.kdsq-options input[type="radio"] {
+    accent-color: #667eea;
+}
+
+.kdsq-options label:hover {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.kdsq-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.kdsq-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.kdsq-meta {
+    display: flex;
+    gap: 12px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+.kdsq-progress-bottom {
+    color: #4f46e5;
+}
+
 /* 결과 영역 */
 .result-container {
     text-align: center;
@@ -348,5 +431,64 @@ body {
     
     .result-percentage {
         font-size: 3rem;
+    }
+}
+
+/* 추가 모바일 최적화 (작은 휴대폰 화면) */
+@media (max-width: 480px) {
+    .main-content {
+        padding: 16px;
+        border-radius: 16px;
+    }
+    .header {
+        border-radius: 16px;
+    }
+    .kdsq-desc {
+        font-size: 0.95rem;
+    }
+    .kdsq-list > li {
+        padding: 14px 12px;
+        margin-bottom: 12px;
+    }
+    .kdsq-list > li span {
+        font-size: 1rem;
+        line-height: 1.5;
+        margin-bottom: 10px;
+    }
+    .kdsq-options {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .kdsq-options label {
+        width: 100%;
+        justify-content: space-between;
+        padding: 12px 14px; /* 더 큰 터치 영역 */
+        font-size: 1rem;
+    }
+    .kdsq-summary {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .kdsq-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .analyze-btn, .reset-btn {
+        width: 48%;
+        padding: 12px 0;
+        font-size: 1rem;
+    }
+    .kdsq-meta {
+        justify-content: space-between;
+        font-size: 0.95rem;
+    }
+    #drawingCanvas {
+        width: 100% !important;
+        height: 240px !important;
+    }
+    .button-container {
+        flex-direction: column;
+        gap: 12px;
     }
 }

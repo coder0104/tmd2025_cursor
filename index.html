@@ -16,11 +16,154 @@
 
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
+            <!-- KDSQ-C 설문 영역 -->
+            <section id="kdsqSection" class="kdsq-section">
+                <h2>인지기능장애 평가도구 (KDSQ-C)</h2>
+                <p class="kdsq-desc">아래 15개 항목에 대해 최근 1년 전과 비교하여 해당하는 곳을 선택하세요. 합계가 6점 미만이면 정상, 6점 이상이면 인지기능 저하로 판단합니다.</p>
+                <!-- 설문 진행바 -->
+                <div id="kdsqProgress" class="progress-container">
+                    <div class="progress-bar">
+                        <div id="kdsqProgressBar" class="progress-fill"></div>
+                    </div>
+                </div>
+                <ol class="kdsq-list">
+                    <li>
+                        <span>1. 오늘이 몇 월이고, 무슨 요일인지를 잘 모른다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q1" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q1" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q1" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>2. 자기가 놔둔 물건을 찾지 못 한다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q2" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q2" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q2" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>3. 같은 질문을 반복해서 한다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q3" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q3" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q3" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>4. 약속을 하고서 잊어버린다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q4" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q4" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q4" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>5. 물건을 가지러 갔다가 잊어버리고 그냥 온다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q5" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q5" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q5" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>6. 물건이나, 사람의 이름을 대기가 힘들어 머뭇거린다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q6" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q6" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q6" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>7. 대화 중 내용이 이해되지 않아 반복해서 물어 본다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q7" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q7" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q7" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>8. 길을 잃거나 헤맨 적이 있다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q8" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q8" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q8" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>9. 예전에 비해서 계산능력이 떨어졌다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q9" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q9" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q9" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>10. 예전에 비해 성격이 변했다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q10" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q10" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q10" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>11. 이전에 잘 다루던 기구의 사용이 서툴러졌다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q11" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q11" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q11" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>12. 예전에 비해 방이나 집안의 정리정돈을 하지 못 한다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q12" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q12" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q12" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>13. 상황에 맞게 스스로 옷을 선택하여 입지 못 한다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q13" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q13" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q13" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>14. 혼자 대중교통 수단을 이용하여 목적지에 가기 힘들다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q14" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q14" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q14" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                    <li>
+                        <span>15. 배부르게 먹어도 더 먹겠다고 갈아입지 않으려고 한다</span>
+                        <div class="kdsq-options">
+                            <label><input type="radio" name="kdsq-q15" value="0"> 아니다(0)</label>
+                            <label><input type="radio" name="kdsq-q15" value="1"> 가끔(1)</label>
+                            <label><input type="radio" name="kdsq-q15" value="2"> 자주(2)</label>
+                        </div>
+                    </li>
+                </ol>
+                <div class="kdsq-summary">
+                    <div class="kdsq-controls">
+                        <button id="kdsqPrevBtn" class="reset-btn" type="button">이전</button>
+                        <button id="kdsqNextBtn" class="analyze-btn" type="button">다음</button>
+                    </div>
+                    <div class="kdsq-meta">
+                        <span id="kdsqProgressTextBottom" class="kdsq-progress-bottom">1 / 15</span>
+                        <span id="kdsqScoreText">현재 점수: 0 / 30</span>
+                    </div>
+                </div>
+            </section>
             <!-- 캔버스 영역 -->
-            <div class="canvas-container">
+            <div class="canvas-container hidden" id="canvasContainer">
                 <canvas id="drawingCanvas" width="600" height="400"></canvas>
                 <div class="canvas-overlay">
-                    <p>여기에 펜으로 글을 써보세요</p>
+                    <p id="canvasOverlayMsg">설문 완료 후 여기에 펜으로 이름을 써보세요</p>
                 </div>
             </div>
 

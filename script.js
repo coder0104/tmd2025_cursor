@@ -16,10 +16,26 @@ const trendSection = document.getElementById('trendSection');
 const trendCanvas = document.getElementById('trendChart');
 const exportHistoryBtn = document.getElementById('exportHistoryBtn');
 const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+// KDSQ DOM
+const kdsqSection = document.getElementById('kdsqSection');
+const kdsqScoreText = document.getElementById('kdsqScoreText');
+const kdsqFillDummyBtn = document.getElementById('kdsqFillDummyBtn');
+const KDSQ_QUESTION_COUNT = 15;
+const kdsqProgressBar = document.getElementById('kdsqProgressBar');
+const kdsqProgressText = document.getElementById('kdsqProgressTextBottom');
+const kdsqPrevBtn = document.getElementById('kdsqPrevBtn');
+const kdsqNextBtn = document.getElementById('kdsqNextBtn');
+const canvasOverlayMsg = document.getElementById('canvasOverlayMsg');
+const canvasContainer = document.getElementById('canvasContainer');
 
 // 캔버스 그리기 상태
 let isDrawing = false;
 let clickCount = 0;
+const KDSQ_WEIGHT = 0.95; // 95%
+const HAND_WEIGHT = 0.05; // 5%
+let surveyUnlocked = false;
+let kdsqCurrentIndex = 1; // 1~15
+let hasDrawnHandwriting = false;
 
 // 손글씨 분석 데이터
 let strokeData = {
@@ -50,6 +66,7 @@ canvas.addEventListener('touchmove', handleTouch);
 canvas.addEventListener('touchend', stopDrawing);
 
 function startDrawing(e) {
+    if (!surveyUnlocked) return; // 설문 완료 전 비활성화
     isDrawing = true;
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -76,7 +93,7 @@ function startDrawing(e) {
 }
 
 function draw(e) {
-    if (!isDrawing) return;
+    if (!isDrawing || !surveyUnlocked) return;
     
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -122,6 +139,11 @@ function draw(e) {
 function stopDrawing() {
     isDrawing = false;
     ctx.beginPath();
+    // 최소 데이터가 있으면 분석 버튼 활성화
+    if (hasHandwriting()) {
+        hasDrawnHandwriting = true;
+        analyzeBtn.disabled = false;
+    }
 }
 
 function handleTouch(e) {
@@ -135,25 +157,41 @@ function handleTouch(e) {
     canvas.dispatchEvent(mouseEvent);
 }
 
+function hasHandwriting() {
+    return strokeData && strokeData.points && strokeData.points.length >= 3;
+}
+
 // 분석 버튼 클릭 이벤트
 analyzeBtn.addEventListener('click', function() {
-    clickCount++;
-    
-    if (clickCount === 1) {
-        // 첫 번째 클릭: 10% 언저리 결과
-        showProgress(5000, () => {
-            const basePercentage = getRandomPercentage(5, 15); // 5-15% 범위
-            const adjustedPercentage = adjustPercentageByHandwriting(basePercentage, '낮음');
-            showResult(adjustedPercentage, '낮음');
-        });
-    } else if (clickCount === 2) {
-        // 두 번째 클릭: 40% 언저리 결과
-        showProgress(5000, () => {
-            const basePercentage = getRandomPercentage(35, 45); // 35-45% 범위
-            const adjustedPercentage = adjustPercentageByHandwriting(basePercentage, '높음');
-            showResult(adjustedPercentage, '높음');
-        });
+    // 사전 검증
+    if (!isKDSQComplete()) {
+        alert('설문을 모두 완료해주세요.');
+        kdsqSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
     }
+    if (!hasHandwriting()) {
+        alert('설문 완료 후, 캔버스에 손글씨를 작성해주세요.');
+        if (canvasContainer) canvasContainer.classList.remove('hidden');
+        canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+    // KDSQ 점수 계산
+    const kdsqScore = calculateKDSQScore(); // 0~30
+    const kdsqRisk = kdsqScoreToRisk(kdsqScore); // 0~100
+    const kdsqLabel = kdsqScore >= 6 ? '높음' : '낮음';
+
+    // 손글씨 기반 리스크 산출(0~100)
+    const handwritingRisk = handwritingRiskPercentage();
+
+    // 가중 통합
+    const finalPercentage = Math.round(
+        kdsqRisk * KDSQ_WEIGHT + handwritingRisk * HAND_WEIGHT
+    );
+
+    // 진행 표시 후 결과 렌더
+    showProgress(2500, () => {
+        showResult(finalPercentage, finalPercentage >= 50 ? '높음' : '낮음');
+    });
 });
 
 // 리셋 버튼 클릭 이벤트
@@ -178,6 +216,11 @@ resetBtn.addEventListener('click', function() {
     
     // 버튼 텍스트 초기화
     analyzeBtn.textContent = '분석 시작';
+    analyzeBtn.disabled = true;
+
+    // KDSQ 초기화
+    resetKDSQSelections();
+    updateKDSQScoreText();
 });
 
 // 진행바 표시 함수
@@ -207,52 +250,28 @@ function getRandomPercentage(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// 손글씨 분석을 통한 확률 조정 함수
-function adjustPercentageByHandwriting(basePercentage, level) {
+// 손글씨 기반 위험도(0~100) 산출
+function handwritingRiskPercentage() {
     if (strokeData.points.length < 3) {
-        return basePercentage; // 데이터가 부족하면 기본값 반환
+        return 0; // 데이터가 없으면 0으로 간주
     }
-    
+
     const analysis = analyzeHandwriting();
-    let adjustment = 0;
-    
-    // 속도 일관성 분석
-    if (analysis.speedConsistency < 0.3) {
-        adjustment += 15; // 속도가 불규칙하면 위험도 증가
-    } else if (analysis.speedConsistency > 0.7) {
-        adjustment -= 5; // 속도가 일정하면 위험도 감소
-    }
-    
-    // 선의 직선성 분석
-    if (analysis.straightness < 0.4) {
-        adjustment += 20; // 선이 삐뚤하면 위험도 증가
-    } else if (analysis.straightness > 0.8) {
-        adjustment -= 8; // 선이 곧으면 위험도 감소
-    }
-    
-    // 가속도 변동성 분석
-    if (analysis.accelerationVariability > 0.6) {
-        adjustment += 12; // 가속도가 불규칙하면 위험도 증가
-    } else if (analysis.accelerationVariability < 0.2) {
-        adjustment -= 3; // 가속도가 일정하면 위험도 감소
-    }
-    
-    // 저크 분석 (손떨림)
-    if (analysis.jerkLevel > 0.5) {
-        adjustment += 18; // 저크가 높으면 위험도 증가
-    } else if (analysis.jerkLevel < 0.1) {
-        adjustment -= 5; // 저크가 낮으면 위험도 감소
-    }
-    
-    // 전체적인 안정성
-    if (analysis.overallStability < 0.3) {
-        adjustment += 25; // 전반적으로 불안정하면 위험도 증가
-    } else if (analysis.overallStability > 0.8) {
-        adjustment -= 10; // 전반적으로 안정하면 위험도 감소
-    }
-    
-    const adjustedPercentage = Math.max(0, Math.min(100, basePercentage + adjustment));
-    return Math.round(adjustedPercentage);
+    // 낮을수록 좋은 지표들을 위험도로 변환
+    const speedInstability = 1 - analysis.speedConsistency; // 0~1
+    const lineCrookedness = 1 - analysis.straightness; // 0~1
+    const accelVar = analysis.accelerationVariability; // 0~1
+    const jerk = analysis.jerkLevel; // 0~1
+    const overallUnstable = 1 - analysis.overallStability; // 0~1
+
+    const risk01 = (
+        speedInstability * 0.25 +
+        lineCrookedness * 0.25 +
+        accelVar * 0.2 +
+        jerk * 0.15 +
+        overallUnstable * 0.15
+    );
+    return Math.max(0, Math.min(100, Math.round(risk01 * 100)));
 }
 
 // 손글씨 분석 함수
@@ -331,15 +350,14 @@ function showResult(percentage, level) {
         resultPercentage.textContent = Math.round(value);
     });
     
-    resultText.textContent = '경도인지장애(MCI) 가능성';
+    resultText.textContent = '최종 평가 결과';
     
     // 결과에 따른 설명 텍스트
     let description = '';
-    if (level === '낮음') {
-        description = '현재 상태는 양호합니다. 정기적인 검진을 통해 건강을 유지하세요.';
-    } else {
-        description = '의료진과 상담을 권장합니다. 조기 발견과 치료가 중요합니다.';
-    }
+    const kdsqScore = calculateKDSQScore();
+    const kdsqState = kdsqScore >= 6 ? '인지능력 저하(≥6점)' : '정상(<6점)';
+    const handwriting = handwritingRiskPercentage();
+    description = `KDSQ 점수: ${kdsqScore}/30 → ${kdsqState}. 손글씨 기반 위험도: ${handwriting}%. 두 지표를 95:5로 합산했습니다.`;
     
     resultDescription.textContent = description;
     
@@ -585,10 +603,12 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
         seedHistoryIfEmpty();
         renderTrendChart();
+        initKDSQ();
     });
 } else {
     seedHistoryIfEmpty();
     renderTrendChart();
+    initKDSQ();
 }
 
 // 컨트롤 버튼 이벤트
@@ -619,4 +639,147 @@ if (clearHistoryBtn) {
             trendChartInstance.update();
         }
     });
+}
+
+// ====== KDSQ 유틸 ======
+function initKDSQ() {
+    if (!kdsqSection) return;
+    // 각 문항 선택 시 점수 업데이트
+    for (let i = 1; i <= KDSQ_QUESTION_COUNT; i++) {
+        const name = `kdsq-q${i}`;
+        const inputs = kdsqSection.querySelectorAll(`input[name="${name}"]`);
+        inputs.forEach((input) => {
+            input.addEventListener('change', () => {
+                updateKDSQScoreText();
+                // 현재 문항 미응답시 다음으로 못 넘어가도록 제어
+                validateCurrentAnswer();
+            });
+        });
+    }
+    // 페이지네이션: 처음에는 1번만 보이기 및 버튼 이벤트
+    paginateKDSQ();
+
+    if (kdsqPrevBtn) {
+        kdsqPrevBtn.addEventListener('click', () => {
+            if (kdsqCurrentIndex > 1) {
+                kdsqCurrentIndex--;
+                paginateKDSQ();
+            }
+        });
+    }
+    if (kdsqNextBtn) {
+        kdsqNextBtn.addEventListener('click', () => {
+            if (kdsqCurrentIndex < KDSQ_QUESTION_COUNT) {
+                kdsqCurrentIndex++;
+                paginateKDSQ();
+            } else {
+                // 설문 완료: 캔버스 언락 및 스크롤
+                surveyUnlocked = true;
+                if (canvasOverlayMsg) canvasOverlayMsg.textContent = '여기에 펜으로 글을 써보세요';
+                if (canvasContainer) canvasContainer.classList.remove('hidden');
+                canvas.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    }
+
+    if (kdsqFillDummyBtn) {
+        kdsqFillDummyBtn.addEventListener('click', () => {
+            fillDummyKDSQ();
+            updateKDSQScoreText();
+            kdsqCurrentIndex = KDSQ_QUESTION_COUNT;
+            paginateKDSQ();
+        });
+    }
+    updateKDSQScoreText();
+    analyzeBtn.disabled = true; // 초기 비활성화
+}
+
+function calculateKDSQScore() {
+    if (!kdsqSection) return 0;
+    let total = 0;
+    for (let i = 1; i <= KDSQ_QUESTION_COUNT; i++) {
+        const checked = kdsqSection.querySelector(`input[name="kdsq-q${i}"]:checked`);
+        const val = checked ? parseInt(checked.value, 10) : 0;
+        total += isNaN(val) ? 0 : val;
+    }
+    return total; // 0~30
+}
+
+function isKDSQComplete() {
+    if (!kdsqSection) return false;
+    for (let i = 1; i <= KDSQ_QUESTION_COUNT; i++) {
+        const checked = kdsqSection.querySelector(`input[name="kdsq-q${i}"]:checked`);
+        if (!checked) return false;
+    }
+    return true;
+}
+
+function validateCurrentAnswer() {
+    const checked = kdsqSection.querySelector(`input[name="kdsq-q${kdsqCurrentIndex}"]:checked`);
+    if (!checked && kdsqNextBtn) {
+        kdsqNextBtn.disabled = true;
+    } else if (kdsqNextBtn) {
+        kdsqNextBtn.disabled = false;
+    }
+}
+
+function kdsqScoreToRisk(score) {
+    // 6점 미만: 정상, 6점 이상: 인지능력 저하
+    if (score < 6) {
+        // 정상 범위: 선형으로 0~40 사이 할당
+        return Math.round((score / 6) * 40);
+    }
+    // 저하 범위: 6점에서 100에 가까워지게 가중
+    const over = Math.min(24, score - 6); // 최대 24
+    return Math.min(100, 50 + Math.round((over / 24) * 50));
+}
+
+function updateKDSQScoreText() {
+    if (!kdsqScoreText) return;
+    const score = calculateKDSQScore();
+    const state = score >= 6 ? '인지능력 저하' : '정상';
+    kdsqScoreText.textContent = `현재 점수: ${score} / 30 (${state})`;
+}
+
+function resetKDSQSelections() {
+    if (!kdsqSection) return;
+    const inputs = kdsqSection.querySelectorAll('input[type="radio"]');
+    inputs.forEach((i) => (i.checked = false));
+    kdsqCurrentIndex = 1;
+    paginateKDSQ();
+    surveyUnlocked = false;
+    if (canvasOverlayMsg) canvasOverlayMsg.textContent = '설문 완료 후 여기에 펜으로 글을 써보세요';
+    if (canvasContainer) canvasContainer.classList.add('hidden');
+    hasDrawnHandwriting = false;
+    validateCurrentAnswer();
+}
+
+function fillDummyKDSQ() {
+    if (!kdsqSection) return;
+    // 예시: 6문항은 0, 6문항은 1, 3문항은 2로 채움(총 12점)
+    let idx = 1;
+    const plan = [0,0,0,0,0,0, 1,1,1,1,1,1, 2,2,2];
+    for (const v of plan) {
+        const input = kdsqSection.querySelector(`input[name="kdsq-q${idx}"][value="${v}"]`);
+        if (input) input.checked = true;
+        idx++;
+    }
+}
+
+function paginateKDSQ() {
+    if (!kdsqSection) return;
+    const items = kdsqSection.querySelectorAll('.kdsq-list > li');
+    items.forEach((li, i) => {
+        li.style.display = (i === kdsqCurrentIndex - 1) ? 'block' : 'none';
+    });
+    if (kdsqProgressBar) {
+        const pct = Math.round((kdsqCurrentIndex - 1) / KDSQ_QUESTION_COUNT * 100);
+        kdsqProgressBar.style.width = `${pct}%`;
+    }
+    if (kdsqProgressText) {
+        kdsqProgressText.textContent = `${kdsqCurrentIndex} / ${KDSQ_QUESTION_COUNT}`;
+    }
+    if (kdsqPrevBtn) kdsqPrevBtn.disabled = (kdsqCurrentIndex === 1);
+    if (kdsqNextBtn) kdsqNextBtn.textContent = (kdsqCurrentIndex < KDSQ_QUESTION_COUNT) ? '다음' : '설문 완료';
+    validateCurrentAnswer();
 }
